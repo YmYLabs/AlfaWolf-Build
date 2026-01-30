@@ -47,7 +47,7 @@ sudo nano config/package-lists/live.list.chroot
 
 Dosyaya bunları yapıştırın.
 
-```bash
+```
 firmware-linux
 live-boot
 live-config
@@ -79,4 +79,11 @@ jfsutils
 reiserfsprogs
 ntfs-3g
 grub-efi-amd64-bin
+```
+
+Şimdi gereksizleri silelim.
+
+```
+sudo lb clean
+sudo lb clean --cache
 ```
