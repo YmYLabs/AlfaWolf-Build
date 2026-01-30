@@ -87,3 +87,11 @@ grub-efi-amd64-bin
 sudo lb clean
 sudo lb clean --cache
 ```
+
+Şimdi builde başlayalım.
+
+```
+sudo lb build
+```
+
+Build bittikten sonra iso dosyası AlfaWolf-Build klasöründe oluşacak.
