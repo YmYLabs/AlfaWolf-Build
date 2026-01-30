@@ -1,0 +1,158 @@
+name: Build AlfaWolf Linux
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Sürüm numarası (örn: 1.0, 2.1, 3.0)'
+        required: true
+        type: string
+      release_type:
+        description: 'Sürüm tipi'
+        required: true
+        type: choice
+        options:
+          - Beta
+          - Preview
+          - Final
+
+jobs:
+  build:
+    name: Build AlfaWolf ${{ inputs.version }} ${{ inputs.release_type }}
+    runs-on: ubuntu-latest
+    container:
+      image: debian:testing
+      options: --privileged
+
+    steps:
+      - name: Bilgileri göster
+        run: |
+          echo "╔════════════════════════════════════════════╗"
+          echo "║         🐺 AlfaWolf Linux Builder          ║"
+          echo "╠════════════════════════════════════════════╣"
+          echo "║  Sürüm: ${{ inputs.version }}"
+          echo "║  Tip: ${{ inputs.release_type }}"
+          echo "║  Masaüstü: KDE Plasma (Wayland)"
+          echo "║  Tarih: $(date '+%Y-%m-%d %H:%M')"
+          echo "╚════════════════════════════════════════════╝"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Bağımlılıkları kur
+        run: |
+          apt-get update
+          apt-get install -y \
+            live-build \
+            debootstrap \
+            squashfs-tools \
+            xorriso \
+            isolinux \
+            syslinux-efi \
+            grub-pc-bin \
+            grub-efi-amd64-bin \
+            grub-efi-ia32-bin \
+            mtools \
+            dosfstools \
+            debian-archive-keyring \
+            ca-certificates \
+            gnupg
+
+      - name: Sürüm bilgilerini ayarla
+        run: |
+          VERSION="${{ inputs.version }}"
+          TYPE="${{ inputs.release_type }}"
+          
+          mkdir -p config/includes.chroot/etc
+          cat > config/includes.chroot/etc/os-release << EOF
+          PRETTY_NAME="AlfaWolf Linux ${VERSION} ${TYPE}"
+          NAME="AlfaWolf"
+          VERSION_ID="${VERSION}"
+          VERSION="${VERSION} (${TYPE})"
+          VERSION_CODENAME=$(echo ${TYPE} | tr '[:upper:]' '[:lower:]')
+          ID=alfawolf
+          ID_LIKE=debian
+          HOME_URL="https://github.com/YmYLabs/AlfaWolf"
+          SUPPORT_URL="https://github.com/YmYLabs/AlfaWolf/issues"
+          BUG_REPORT_URL="https://github.com/YmYLabs/AlfaWolf/issues"
+          EOF
+          
+          mkdir -p config/includes.chroot/etc/alfawolf
+          cat > config/includes.chroot/etc/alfawolf/release << EOF
+          ALFAWOLF_VERSION=${VERSION}
+          ALFAWOLF_TYPE=${TYPE}
+          ALFAWOLF_BUILD_DATE=$(date '+%Y-%m-%d')
+          ALFAWOLF_DESKTOP=KDE Plasma
+          ALFAWOLF_SESSION=Wayland
+          EOF
+          
+          # Welcome app config güncelle
+          sed -i "s/\"version\": \".*\"/\"version\": \"${VERSION}\"/" config/includes.chroot/usr/share/alfawolf-welcome/config.json
+          sed -i "s/\"release_type\": \".*\"/\"release_type\": \"${TYPE}\"/" config/includes.chroot/usr/share/alfawolf-welcome/config.json
+
+      - name: Live-build yapılandır
+        run: |
+          chmod +x auto/*
+          lb config
+
+      - name: ISO oluştur
+        run: |
+          lb build 2>&1 | tee build.log
+        timeout-minutes: 180
+
+      - name: ISO'yu yeniden adlandır
+        run: |
+          VERSION="${{ inputs.version }}"
+          TYPE="${{ inputs.release_type }}"
+          DATE=$(date +%Y%m%d)
+          
+          case ${TYPE} in
+            Beta)
+              FILENAME="AlfaWolf-${VERSION}-beta-${DATE}-amd64.iso"
+              ;;
+            Preview)
+              FILENAME="AlfaWolf-${VERSION}-preview-${DATE}-amd64.iso"
+              ;;
+            Final)
+              FILENAME="AlfaWolf-${VERSION}-${DATE}-amd64.iso"
+              ;;
+          esac
+          
+          mv alfawolf-linux-amd64.hybrid.iso ${FILENAME}
+          sha256sum ${FILENAME} > ${FILENAME}.sha256
+          
+          cat > BUILD_INFO.txt << EOF
+          ╔════════════════════════════════════════════╗
+          ║       AlfaWolf Linux Build Bilgileri       ║
+          ╠════════════════════════════════════════════╣
+          ║  Sürüm: ${VERSION} ${TYPE}
+          ║  Masaüstü: KDE Plasma 6 (Wayland)
+          ║  Taban: Debian Testing
+          ║  Build: $(date '+%Y-%m-%d %H:%M:%S UTC')
+          ║  Dosya: ${FILENAME}
+          ║  SHA256: $(cat ${FILENAME}.sha256 | cut -d' ' -f1)
+          ╚════════════════════════════════════════════╝
+          
+          GitHub: https://github.com/YmYLabs/AlfaWolf
+          EOF
+          
+          echo "FILENAME=${FILENAME}" >> $GITHUB_ENV
+
+      - name: ISO'yu yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: AlfaWolf-${{ inputs.version }}-${{ inputs.release_type }}
+          path: |
+            AlfaWolf-*.iso
+            AlfaWolf-*.iso.sha256
+            BUILD_INFO.txt
+          retention-days: 30
+          compression-level: 0
+
+      - name: Build log yükle
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-log-${{ inputs.version }}-${{ inputs.release_type }}
+          path: build.log
+          retention-days: 7
