@@ -4,37 +4,47 @@
 
 ### Gerekli uygulamaları yükleme.
 
+```
 sudo apt update && sudo apt upgrade -y
-
 sudo apt install live-build squashfs-tools live-boot 
-
 xorriso isolinux netselect-apt -y
+```
 
 ### Dosyaları oluşturma.
 
 Öncelikle bu repoyu klonlayın.
 
+```
 git clone https://github.com/YmYLabs/AlfaWolf-Build.git
+```
 
 Klasörün içine girin.
 
+```
 cd AlfaWolf-Build
+```
 
 Klasörün içindekileri görmek için bunu girebilirsiniz
 
+```
 ls -la
+```
 
 ### Builde başlama.
 
 Şimdi bu komutu girin.
 
+```
 lb config
+```
 
 Bu gerekli dosyaları oluşturur.
 
 Dağıtımımıza yüklenecek olan paketleri ayarlayalım.
 
+```
 sudo nano config/package-lists/live.list.chroot
+```
 
 Dosyaya bunları yapıştırın.
 
