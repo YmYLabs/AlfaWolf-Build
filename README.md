@@ -1,2 +1,6 @@
-# AlfaWolf-Build
-AlfaWolf Linux Build Repository.
+# AlfaWolf Linux Build Repository.
+
+## Nasıl yapılır?
+
+### Öncelikle şu komutları girmeniz lazım;
+skksks
