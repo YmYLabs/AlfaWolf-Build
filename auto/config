@@ -1,10 +1,25 @@
-#!/bin/sh
+#!/bin/bash
+
 set -e
+
 lb config noauto \
- --mode debian \
- --distribution testing \
- --architectures amd64 \
- --debian-installer false \
- --archive-areas "main contrib non-free non-free-firmware" \
- --memtest none \
- "${@}"
+    --distribution testing \
+    --debian-installer live \
+    --debian-installer-gui true \
+    --archive-areas "main contrib non-free non-free-firmware" \
+    --debootstrap-options "--include=apt-transport-https,ca-certificates" \
+    --apt-recommends true \
+    --binary-images iso-hybrid \
+    --bootappend-live "boot=live components quiet splash locales=tr_TR.UTF-8 keyboard-layouts=tr" \
+    --iso-application "AlfaWolf Linux" \
+    --iso-publisher "YmYLabs; https://github.com/YmYLabs/AlfaWolf" \
+    --iso-volume "AlfaWolf" \
+    --image-name "alfawolf-linux" \
+    --linux-packages "linux-image linux-headers" \
+    --security true \
+    --updates true \
+    --firmware-binary true \
+    --firmware-chroot true \
+    --memtest memtest86+ \
+    --win32-loader false \
+    "${@}"
